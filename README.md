@@ -42,15 +42,6 @@ All Oracle23ai resources will be organized under the `oracle` namespace:
 kubectl apply -f oracle23ai-namespace.yaml
 ```
 
-### Persistent Volumes
-In order to store your database files, create a Persistent Volume Claim. In my case, I use an nfs-client storageclass that automatically creates a volume from my homelab NAS.
-If you are interested in the NFS configuration check my [deploy-kubernetes-cluster](https://github.com/hfolguera/deploy-kubernetes-cluster?tab=readme-ov-file#configure-storage-provider) post installation steps.
-
-Create the Persistent Volume Claim (PVC) with the following command:
-```
-kubectl apply -f oracle23ai-pvc.yaml
-```
-
 ### Secrets
 To securely store your Database passwords, manually create a secret with the following command:
 ```
@@ -59,10 +50,10 @@ kubectl create secret generic oracle-pass --from-literal=password=welcome1 -n or
 
 This password will be used for your `SYS, SYSTEM and PDBADMIN` users.
 
-### Deployment
-Next, create a kubernetes deployment to create the database pod:
+### Statefulset
+Next, create a kubernetes statefulset to create the database pod:
 ```
-kubectl apply -f oracle23ai-deployment.yaml
+kubectl apply -f oracle23ai-statefulset.yaml
 ```
 
 Feel free to edit the file and modify for any of your requirements.
