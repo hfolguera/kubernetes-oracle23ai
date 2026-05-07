@@ -1,0 +1,86 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: metrics-exporter
+  namespace: oracle
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: metrics-exporter
+  template:
+    metadata:
+      labels:
+        app: metrics-exporter
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: metrics-exporter
+        # Replace with the published digest for the release you intend to run, for example:
+        # image: container-registry.oracle.com/database/observability-exporter:2.3.1@sha256:<published-digest>
+        image: container-registry.oracle.com/database/observability-exporter:2.3.1
+        imagePullPolicy: IfNotPresent
+        command: ["/oracledb_exporter"]
+        args: ["--config.file=/config/metrics-exporter-config.yaml"]
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+              - ALL
+          readOnlyRootFilesystem: true
+        env:
+          # uncomment and customize the next item if you want to provide custom metrics definitions
+          #- name: CUSTOM_METRICS
+          #  value: /oracle/observability/txeventq-metrics.toml
+          - name: TNS_ADMIN
+            value: "/oracle/tns_admin"
+          - name: DB_USERNAME
+            value: "SYS"
+          - name: DB_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: oracle-pass
+                key: password
+                optional: false
+          - name: DB_CONNECT_STRING
+            value: "oracle23ai.oracle.svc.calfolguera.com:1521/FREEPDB1"
+        volumeMounts:
+          - name: exporter-config
+            mountPath: /config
+            readOnly: true
+          # - name: tns-admin
+          #   mountPath: /oracle/tns_admin
+          #   readOnly: true
+          - name: tmp
+            mountPath: /tmp
+          # uncomment and customize the next item if you want to provide custom metrics definitions
+          #- name: config-volume
+          #  mountPath: /oracle/observability/txeventq-metrics.toml
+          #  subPath: txeventq-metrics.toml
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "250m"
+          limits:
+            memory: "128Mi"
+            cpu: "500m"  
+        ports:
+        - containerPort: 9161
+      restartPolicy: Always
+      volumes:
+        # - name: tns-admin
+        #   configMap:
+        #     name: db-metrics-tns-admin
+        - name: exporter-config
+          configMap:
+            name: metrics-exporter-config
+        - name: tmp
+          emptyDir: {}
+        # uncomment and customize the next item if you want to provide custom metrics definitions
+        #- name: config-volume
+        #  configMap:
+        #    name: db-metrics-txeventq-exporter-config
